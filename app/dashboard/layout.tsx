@@ -17,7 +17,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef6ff_46%,#f8fafc_100%)]">
-      <DashboardNav />
+      <DashboardNav userEmail={data.user.email} />
       {children}
     </div>
   );

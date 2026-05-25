@@ -40,6 +40,31 @@ async function unpublishOtherDailyVerses(supabase: Awaited<ReturnType<typeof cre
   }
 }
 
+async function ensureDailyVerseDateIsAvailable(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  verseDate: string,
+  id?: string
+) {
+  let query = supabase
+    .from('daily_verses')
+    .select('id, reference')
+    .eq('verse_date', verseDate);
+
+  if (id) {
+    query = query.neq('id', id);
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (data) {
+    throw new Error('Only one daily verse can be created for a date. Choose another date or edit the existing verse.');
+  }
+}
+
 export async function createDailyVerse(
   _state: DailyVerseActionState,
   formData: FormData
@@ -54,6 +79,7 @@ export async function createDailyVerse(
 
   try {
     input = parseDailyVerseForm(formData);
+    await ensureDailyVerseDateIsAvailable(supabase, input.verse_date);
     upload = await uploadVerseBackground(getImageFile(formData) as File);
     if (input.is_published) {
       await unpublishOtherDailyVerses(supabase);
@@ -91,6 +117,7 @@ export async function updateDailyVerse(
 
   try {
     input = parseDailyVerseForm(formData);
+    await ensureDailyVerseDateIsAvailable(supabase, input.verse_date, id);
     upload = await uploadVerseBackground(getImageFile(formData) as File);
     if (input.is_published) {
       await unpublishOtherDailyVerses(supabase, id);

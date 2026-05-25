@@ -6,6 +6,7 @@ import {
 import PublishDailyVerseButton from '@/components/PublishDailyVerseButton';
 import {
   VersePreviewCard,
+  getDailyVerseFallbackImageUrl,
   normalizePreviewSettings,
 } from '@/components/VersePreviewCard';
 import { createClient } from '@/lib/supabase/server';
@@ -108,18 +109,19 @@ export default async function DailyVersesPage() {
             const settings = normalizePreviewSettings(verse.editor_settings, verse.verse_text);
             const conflictingPublishedReference =
               !verse.is_published && publishedVerse ? publishedVerse.reference : null;
+            const displayReference = settings.cardMode === 'imageOnly' ? 'Image only' : verse.reference;
+            const displayText = settings.cardMode === 'imageOnly' ? 'Image-only daily verse' : verse.verse_text;
 
             return (
               <article key={verse.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="relative p-2.5 sm:p-3">
                   <div className="overflow-hidden rounded-xl">
                     <VersePreviewCard
-                      imageUrl={verse.background_image_url}
+                      imageUrl={verse.background_image_url || getDailyVerseFallbackImageUrl(verse.verse_date)}
                       dateLabel={previewDate(verse.verse_date)}
                       reference={verse.reference}
                       verseText={verse.verse_text}
                       settings={settings}
-                      compact
                     />
                   </div>
                   <span className={`absolute right-5 top-5 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm ${verse.is_published ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-white/90 text-slate-600 ring-1 ring-slate-200'}`}>
@@ -131,21 +133,21 @@ export default async function DailyVersesPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-blue-500" />
-                      <p className="truncate text-lg font-bold text-slate-950 sm:text-base" title={verse.reference}>
-                        {verse.reference}
+                      <p className="truncate text-lg font-bold text-slate-950 sm:text-base" title={displayReference}>
+                        {displayReference}
                       </p>
                     </div>
                     <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{formatDate(verse.verse_date)} &middot; {verse.language}</p>
                   </div>
 
-                  <p className="mt-3 line-clamp-3 overflow-hidden text-base leading-7 text-slate-700 sm:text-sm sm:leading-6">{verse.verse_text}</p>
+                  <p className="mt-3 line-clamp-3 overflow-hidden text-base leading-7 text-slate-700 sm:text-sm sm:leading-6">{displayText}</p>
 
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     <span className={`rounded-full px-2.5 py-1 font-bold ${verse.background_image_url ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
                       {verse.background_image_url ? 'Image uploaded' : 'No image'}
                     </span>
                     <span className="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-500">
-                      {settings.verseSpans.length > 1 ? 'Styled text' : 'Plain text'}
+                      {settings.cardMode === 'imageOnly' ? 'Image only' : settings.verseSpans.length > 1 ? 'Styled text' : 'Plain text'}
                     </span>
                   </div>
                 </div>

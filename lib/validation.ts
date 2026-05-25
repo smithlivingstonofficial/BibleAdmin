@@ -8,6 +8,9 @@ export type DailyVerseInput = {
 };
 
 const DEFAULT_EDITOR_SETTINGS = {
+  cardMode: 'verse',
+  momentStyle: 'classic',
+  hideDate: false,
   imageZoom: 1,
   imageX: 50,
   imageY: 50,
@@ -21,6 +24,11 @@ const DEFAULT_EDITOR_SETTINGS = {
   verseLineHeight: 30,
   textAlign: 'center',
   textColor: '#ffffff',
+  gradientStartColor: '#000000',
+  gradientEndColor: '#000000',
+  referenceBackgroundColor: '#ffffff',
+  referenceTextColor: '#000000',
+  dateBadgeColor: '#000000',
   referenceFontSize: 14,
   referenceStyle: 'pill',
   verseSpans: [],
@@ -41,7 +49,13 @@ const numericSettings = {
   referenceFontSize: { min: 10, max: 24 },
 };
 
-const allowedTextColors = new Set(['#ffffff', '#f8fafc', '#fef3c7', '#e0f2fe']);
+const allowedMomentStyles = new Set(['classic', 'celebration', 'gold', 'glass']);
+const hexColorPattern = /^#[0-9a-f]{6}$/i;
+
+function parseColor(value: unknown, fallback: string) {
+  const color = String(value || '').trim();
+  return hexColorPattern.test(color) ? color.toLowerCase() : fallback;
+}
 
 function parseVerseSpans(value: unknown, fallbackText: string) {
   if (!Array.isArray(value)) {
@@ -88,10 +102,18 @@ function parseEditorSettings(formData: FormData, verseText: string) {
   settings.textAlign = ['left', 'center', 'right'].includes(String(parsed.textAlign))
     ? String(parsed.textAlign)
     : DEFAULT_EDITOR_SETTINGS.textAlign;
-  settings.textColor = allowedTextColors.has(String(parsed.textColor))
-    ? String(parsed.textColor)
-    : DEFAULT_EDITOR_SETTINGS.textColor;
+  settings.hideDate = parsed.hideDate === true;
+  settings.textColor = parseColor(parsed.textColor, DEFAULT_EDITOR_SETTINGS.textColor);
+  settings.gradientStartColor = parseColor(parsed.gradientStartColor, DEFAULT_EDITOR_SETTINGS.gradientStartColor);
+  settings.gradientEndColor = parseColor(parsed.gradientEndColor, DEFAULT_EDITOR_SETTINGS.gradientEndColor);
+  settings.referenceBackgroundColor = parseColor(parsed.referenceBackgroundColor, DEFAULT_EDITOR_SETTINGS.referenceBackgroundColor);
+  settings.referenceTextColor = parseColor(parsed.referenceTextColor, DEFAULT_EDITOR_SETTINGS.referenceTextColor);
+  settings.dateBadgeColor = parseColor(parsed.dateBadgeColor, DEFAULT_EDITOR_SETTINGS.dateBadgeColor);
   settings.referenceStyle = String(parsed.referenceStyle) === 'minimal' ? 'minimal' : 'pill';
+  settings.cardMode = String(parsed.cardMode) === 'imageOnly' ? 'imageOnly' : 'verse';
+  settings.momentStyle = allowedMomentStyles.has(String(parsed.momentStyle))
+    ? String(parsed.momentStyle)
+    : DEFAULT_EDITOR_SETTINGS.momentStyle;
   settings.verseSpans = parseVerseSpans(parsed.verseSpans, verseText);
 
   return settings;
@@ -102,16 +124,18 @@ export function parseDailyVerseForm(formData: FormData): DailyVerseInput {
   const reference = String(formData.get('reference') || '').trim();
   const verseText = String(formData.get('verse_text') || '').trim();
   const language = String(formData.get('language') || 'ta').trim() || 'ta';
+  const editorSettings = parseEditorSettings(formData, verseText);
+  const isImageOnly = editorSettings.cardMode === 'imageOnly';
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(verseDate)) {
     throw new Error('Verse date is required.');
   }
 
-  if (!reference) {
+  if (!isImageOnly && !reference) {
     throw new Error('Reference is required.');
   }
 
-  if (!verseText) {
+  if (!isImageOnly && !verseText) {
     throw new Error('Verse text is required.');
   }
 
@@ -121,6 +145,6 @@ export function parseDailyVerseForm(formData: FormData): DailyVerseInput {
     verse_text: verseText,
     language,
     is_published: formData.get('is_published') === 'on',
-    editor_settings: parseEditorSettings(formData, verseText),
+    editor_settings: editorSettings,
   };
 }
