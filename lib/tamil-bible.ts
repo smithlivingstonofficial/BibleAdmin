@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 
 type RawVerse = {
@@ -47,17 +47,40 @@ export type TamilBibleVerseOption = {
 
 let cachedBooks: RawBook[] | null = null;
 
-function getBooks() {
+function getLocalBiblePath() {
+  const adminDataPath = path.resolve(process.cwd(), 'data', 'tamil-bible.json');
+  if (existsSync(adminDataPath)) return adminDataPath;
+
+  return path.resolve(process.cwd(), '..', 'TamilBible', 'app', 'data', 'bible.json');
+}
+
+async function fetchRemoteBible(url: string) {
+  const response = await fetch(url, {
+    cache: 'force-cache',
+    next: { revalidate: 60 * 60 * 24 },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Tamil Bible JSON request failed with status ${response.status}.`);
+  }
+
+  return response.json() as Promise<RawBible>;
+}
+
+async function getBooks() {
   if (cachedBooks) return cachedBooks;
 
-  const biblePath = path.resolve(process.cwd(), '..', 'TamilBible', 'app', 'data', 'bible.json');
-  const bible = JSON.parse(readFileSync(biblePath, 'utf8')) as RawBible;
+  const remoteBibleUrl = process.env.TAMIL_BIBLE_JSON_URL?.trim();
+  const bible = remoteBibleUrl
+    ? await fetchRemoteBible(remoteBibleUrl)
+    : JSON.parse(readFileSync(getLocalBiblePath(), 'utf8')) as RawBible;
+
   cachedBooks = bible.XMLBIBLE.BIBLEBOOK;
   return cachedBooks;
 }
 
-export function getTamilBiblePickerData(bookNumber?: string | null, chapterNumber?: string | null) {
-  const books = getBooks();
+export async function getTamilBiblePickerData(bookNumber?: string | null, chapterNumber?: string | null) {
+  const books = await getBooks();
   const selectedBook = books.find((book) => book.$.bnumber === bookNumber) || null;
   const selectedChapter = selectedBook?.CHAPTER.find((chapter) => chapter.$.cnumber === chapterNumber) || null;
 
