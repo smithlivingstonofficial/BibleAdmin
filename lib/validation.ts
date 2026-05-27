@@ -1,3 +1,8 @@
+import {
+  darkBibleClassicCanvas,
+  normalizeCanvasSettings,
+} from '@/components/DailyVerseCanvasSettings';
+
 export type DailyVerseInput = {
   verse_date: string;
   reference: string;
@@ -32,6 +37,7 @@ const DEFAULT_EDITOR_SETTINGS = {
   referenceFontSize: 14,
   referenceStyle: 'pill',
   verseSpans: [],
+  canvas: darkBibleClassicCanvas,
 };
 
 const numericSettings = {
@@ -78,6 +84,44 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function sanitizeJsonObject(value: unknown, depth = 0): Record<string, unknown> | null {
+  if (!isPlainObject(value) || depth > 6) return null;
+
+  return Object.entries(value).reduce<Record<string, unknown>>((output, [key, entry]) => {
+    if (typeof key !== 'string' || key.length > 80) return output;
+
+    if (
+      entry === null ||
+      typeof entry === 'string' ||
+      typeof entry === 'boolean' ||
+      (typeof entry === 'number' && Number.isFinite(entry))
+    ) {
+      output[key] = typeof entry === 'string' ? entry.slice(0, 2000) : entry;
+      return output;
+    }
+
+    if (Array.isArray(entry)) {
+      output[key] = entry
+        .slice(0, 40)
+        .filter((item) => item === null || ['string', 'boolean', 'number'].includes(typeof item) || isPlainObject(item))
+        .map((item) => {
+          if (isPlainObject(item)) return sanitizeJsonObject(item, depth + 1);
+          if (typeof item === 'string') return item.slice(0, 1000);
+          return item;
+        });
+      return output;
+    }
+
+    const objectEntry = sanitizeJsonObject(entry, depth + 1);
+    if (objectEntry) output[key] = objectEntry;
+    return output;
+  }, {});
+}
+
 function parseEditorSettings(formData: FormData, verseText: string) {
   const rawSettings = String(formData.get('editor_settings') || '');
   let parsed: Record<string, unknown> = {};
@@ -115,6 +159,7 @@ function parseEditorSettings(formData: FormData, verseText: string) {
     ? String(parsed.momentStyle)
     : DEFAULT_EDITOR_SETTINGS.momentStyle;
   settings.verseSpans = parseVerseSpans(parsed.verseSpans, verseText);
+  settings.canvas = normalizeCanvasSettings(sanitizeJsonObject(parsed.canvas) || DEFAULT_EDITOR_SETTINGS.canvas);
 
   return settings;
 }

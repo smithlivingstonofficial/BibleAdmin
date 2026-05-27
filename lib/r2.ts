@@ -62,3 +62,37 @@ export async function uploadVerseBackground(file: File) {
     url: `${publicUrl}/${key}`,
   };
 }
+
+export async function uploadVerseWatermark(file: File) {
+  if (!file || file.size === 0) {
+    return null;
+  }
+
+  if (!allowedImageTypes.has(file.type)) {
+    throw new Error('Watermark image must be JPG, PNG, or WebP.');
+  }
+
+  if (file.size > MAX_BACKGROUND_IMAGE_SIZE) {
+    throw new Error(`Watermark image must be ${MAX_BACKGROUND_IMAGE_SIZE_MB} MB or smaller.`);
+  }
+
+  const bucket = getRequiredEnv('CLOUDFLARE_R2_BUCKET');
+  const publicUrl = getRequiredEnv('CLOUDFLARE_R2_PUBLIC_URL').replace(/\/$/, '');
+  const key = `daily-verses/watermarks/${crypto.randomUUID()}.${extensionForType(file.type)}`;
+  const body = Buffer.from(await file.arrayBuffer());
+
+  await getR2Client().send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: body,
+      ContentType: file.type,
+      CacheControl: 'public, max-age=31536000, immutable',
+    })
+  );
+
+  return {
+    key,
+    url: `${publicUrl}/${key}`,
+  };
+}

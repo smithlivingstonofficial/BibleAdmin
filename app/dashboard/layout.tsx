@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import DashboardNav from '@/components/DashboardNav';
+import DashboardNavGate from '@/components/DashboardNavGate';
 import SetupNotice from '@/components/SetupNotice';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 
@@ -17,7 +17,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef6ff_46%,#f8fafc_100%)]">
-      <DashboardNav userEmail={data.user.email} />
+      <DashboardNavGate userEmail={data.user.email} />
       {children}
     </div>
   );

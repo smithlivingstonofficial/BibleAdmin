@@ -1,3 +1,10 @@
+import { DailyVerseCanvas } from './DailyVerseCanvas';
+import {
+  darkBibleClassicCanvas,
+  normalizeCanvasSettings,
+  type CanvasSettings,
+} from './DailyVerseCanvasSettings';
+
 export type VerseSpan = {
   text: string;
   bold?: boolean;
@@ -29,6 +36,7 @@ export type PreviewSettings = {
   referenceFontSize: number;
   referenceStyle: 'pill' | 'minimal';
   verseSpans: VerseSpan[];
+  canvas: CanvasSettings;
 };
 
 export const defaultPreviewSettings: PreviewSettings = {
@@ -56,6 +64,7 @@ export const defaultPreviewSettings: PreviewSettings = {
   referenceFontSize: 14,
   referenceStyle: 'pill',
   verseSpans: [],
+  canvas: darkBibleClassicCanvas,
 };
 
 const alignOptions = ['left', 'center', 'right'];
@@ -83,6 +92,48 @@ function rgbaFromHex(color: string, alpha: number) {
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 }
 
+function legacyCanvasFromSettings(source: Record<string, unknown>, normalized: Omit<PreviewSettings, 'canvas'>): CanvasSettings {
+  const fallback = normalizeCanvasSettings(source.canvas);
+  const overlayX = typeof source.overlayX === 'number' ? source.overlayX / 100 : fallback.layers.verse.x;
+  const overlayY = typeof source.overlayY === 'number' ? source.overlayY / 100 : fallback.layers.verse.y;
+  const overlayWidth = typeof source.overlayWidth === 'number' ? source.overlayWidth / 100 : fallback.layers.verse.width;
+
+  return normalizeCanvasSettings({
+    ...fallback,
+    background: {
+      ...fallback.background,
+      zoom: normalized.imageZoom,
+      focusX: normalized.imageX / 100,
+      focusY: normalized.imageY / 100,
+      overlayOpacity: normalized.overlayOpacity / 100,
+      overlayColor: normalized.gradientStartColor || '#000000',
+    },
+    layers: {
+      ...fallback.layers,
+      date: {
+        ...fallback.layers.date,
+        color: '#ffffff',
+      },
+      verse: {
+        ...fallback.layers.verse,
+        x: overlayX || darkBibleClassicCanvas.layers.verse.x,
+        y: overlayY || darkBibleClassicCanvas.layers.verse.y,
+        width: overlayWidth || darkBibleClassicCanvas.layers.verse.width,
+        fontSize: normalized.verseFontSize / 300,
+        lineHeight: normalized.verseLineHeight / Math.max(normalized.verseFontSize, 1),
+        align: normalized.textAlign,
+        color: normalized.textColor,
+      },
+      reference: {
+        ...fallback.layers.reference,
+        fontSize: normalized.referenceFontSize / 390,
+        backgroundColor: normalized.referenceStyle === 'pill' ? normalized.referenceBackgroundColor : 'transparent',
+        textColor: normalized.referenceStyle === 'pill' ? normalized.referenceTextColor : normalized.textColor,
+      },
+    },
+  });
+}
+
 function normalizeSpans(value: unknown, fallbackText: string): VerseSpan[] {
   if (!Array.isArray(value)) return fallbackText ? [{ text: fallbackText }] : [];
 
@@ -95,7 +146,7 @@ function normalizeSpans(value: unknown, fallbackText: string): VerseSpan[] {
 
 export function normalizePreviewSettings(settings: Record<string, unknown> | null | undefined, fallbackText = ''): PreviewSettings {
   const source = settings || {};
-  return {
+  const normalized: Omit<PreviewSettings, 'canvas'> = {
     ...defaultPreviewSettings,
     ...source,
     textAlign: alignOptions.includes(String(source.textAlign))
@@ -114,6 +165,11 @@ export function normalizePreviewSettings(settings: Record<string, unknown> | nul
       ? (source.momentStyle as PreviewSettings['momentStyle'])
       : 'classic',
     verseSpans: normalizeSpans(source.verseSpans, fallbackText),
+  };
+
+  return {
+    ...normalized,
+    canvas: source.canvas ? normalizeCanvasSettings(source.canvas) : legacyCanvasFromSettings(source, normalized),
   };
 }
 
@@ -203,97 +259,17 @@ export function VersePreviewCard({
   settings: PreviewSettings;
   compact?: boolean;
 }) {
-  const scale = compact ? 0.62 : 1;
-  const imageSource = imageUrl || null;
-  const spans = settings.verseSpans.length > 0 ? settings.verseSpans : [{ text: verseText }];
-  const isImageOnly = settings.cardMode === 'imageOnly';
-  const momentStyle = getMomentStyle(settings, scale);
-
   return (
-    <div className="relative aspect-square overflow-hidden rounded-[16px] bg-slate-200 shadow-[0_4px_8px_rgba(0,0,0,0.2)]">
-      {imageSource ? (
-        <img
-          alt=""
-          src={imageSource}
-          className="absolute object-cover"
-          style={{
-            width: `${settings.imageZoom * 100}%`,
-            height: `${settings.imageZoom * 100}%`,
-            left: `${-(settings.imageZoom - 1) * settings.imageX}%`,
-            top: `${-(settings.imageZoom - 1) * settings.imageY}%`,
-          }}
-        />
-      ) : (
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,#475569,#94a3b8_55%,#e2e8f0)]" />
-      )}
-
-      {!settings.hideDate ? (
-        <div
-          className="absolute left-0 top-0 rounded-br-[16px] rounded-tl-[16px] font-bold text-white"
-          style={{
-            padding: `${6 * scale}px ${12 * scale}px`,
-            fontSize: `${14 * scale}px`,
-            lineHeight: `${18 * scale}px`,
-            backgroundColor: rgbaFromHex(settings.dateBadgeColor, 0.4),
-          }}
-        >
-          {dateLabel}
-        </div>
-      ) : null}
-
-      {!isImageOnly ? (
-        <div
-          className="absolute text-white"
-          style={{
-            left: `${settings.overlayX}%`,
-            top: `${settings.overlayY}%`,
-            width: `${settings.overlayWidth}%`,
-            borderRadius: `${settings.overlayRadius * scale}px`,
-            padding: `${settings.overlayPadding * scale}px`,
-            color: settings.textColor,
-            ...momentStyle.overlay,
-          }}
-        >
-          <p
-            className="m-0 italic"
-            style={{
-              fontSize: `${settings.verseFontSize * scale}px`,
-              lineHeight: `${settings.verseLineHeight * scale}px`,
-              textAlign: settings.textAlign,
-              color: settings.textColor,
-              fontWeight: 700,
-            }}
-          >
-            &quot;
-            {spans.map((span, index) => (
-              <span key={`${span.text}-${index}`} style={{ fontWeight: span.bold ? 900 : 700, fontStyle: span.italic ? 'italic' : 'normal' }}>
-                {span.text}
-              </span>
-            ))}
-            &quot;
-          </p>
-          <div
-            className="flex"
-            style={{
-              justifyContent: settings.textAlign === 'left' ? 'flex-start' : settings.textAlign === 'right' ? 'flex-end' : 'center',
-              marginTop: `${16 * scale}px`,
-            }}
-          >
-            <span
-              className={momentStyle.refClass}
-              style={{
-                fontSize: `${settings.referenceFontSize * scale}px`,
-                lineHeight: `${18 * scale}px`,
-                padding: settings.referenceStyle === 'pill' ? `${6 * scale}px ${16 * scale}px` : 0,
-                textAlign: 'center',
-                ...momentStyle.refStyle,
-              }}
-            >
-              {reference || 'Reference'}
-            </span>
-          </div>
-        </div>
-      ) : null}
-    </div>
+    <DailyVerseCanvas
+      imageUrl={imageUrl}
+      dateLabel={dateLabel}
+      reference={reference}
+      verseText={verseText}
+      spans={settings.verseSpans}
+      canvas={settings.canvas}
+      cardMode={settings.cardMode}
+      hideDate={settings.hideDate}
+      compact={compact}
+    />
   );
 }

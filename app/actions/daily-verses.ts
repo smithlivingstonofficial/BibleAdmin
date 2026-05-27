@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { uploadVerseBackground } from '@/lib/r2';
+import { uploadVerseBackground, uploadVerseWatermark } from '@/lib/r2';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { parseDailyVerseForm } from '@/lib/validation';
 
@@ -13,6 +13,40 @@ export type DailyVerseActionState = {
 function getImageFile(formData: FormData) {
   const file = formData.get('background_image');
   return file instanceof File && file.size > 0 ? file : null;
+}
+
+function getWatermarkImageFile(formData: FormData) {
+  const file = formData.get('watermark_image');
+  return file instanceof File && file.size > 0 ? file : null;
+}
+
+function applyWatermarkUpload(input: ReturnType<typeof parseDailyVerseForm>, imageUrl: string | null) {
+  if (!imageUrl) return input;
+
+  const editorSettings = input.editor_settings as Record<string, unknown>;
+  const canvas = editorSettings.canvas && typeof editorSettings.canvas === 'object'
+    ? editorSettings.canvas as Record<string, unknown>
+    : {};
+  const watermark = canvas.watermark && typeof canvas.watermark === 'object'
+    ? canvas.watermark as Record<string, unknown>
+    : {};
+  const mode = watermark.mode === 'text' ? 'textImage' : watermark.mode === 'none' ? 'image' : watermark.mode || 'image';
+
+  return {
+    ...input,
+    editor_settings: {
+      ...editorSettings,
+      canvas: {
+        ...canvas,
+        watermark: {
+          ...watermark,
+          enabled: true,
+          mode,
+          imageUrl,
+        },
+      },
+    },
+  };
 }
 
 function getActionErrorMessage(error: unknown) {
@@ -76,11 +110,14 @@ export async function createDailyVerse(
   const supabase = await createClient();
   let input: ReturnType<typeof parseDailyVerseForm>;
   let upload: Awaited<ReturnType<typeof uploadVerseBackground>>;
+  let watermarkUpload: Awaited<ReturnType<typeof uploadVerseWatermark>>;
 
   try {
     input = parseDailyVerseForm(formData);
     await ensureDailyVerseDateIsAvailable(supabase, input.verse_date);
     upload = await uploadVerseBackground(getImageFile(formData) as File);
+    watermarkUpload = await uploadVerseWatermark(getWatermarkImageFile(formData) as File);
+    input = applyWatermarkUpload(input, watermarkUpload?.url ?? null);
     if (input.is_published) {
       await unpublishOtherDailyVerses(supabase);
     }
@@ -114,11 +151,14 @@ export async function updateDailyVerse(
   const supabase = await createClient();
   let input: ReturnType<typeof parseDailyVerseForm>;
   let upload: Awaited<ReturnType<typeof uploadVerseBackground>>;
+  let watermarkUpload: Awaited<ReturnType<typeof uploadVerseWatermark>>;
 
   try {
     input = parseDailyVerseForm(formData);
     await ensureDailyVerseDateIsAvailable(supabase, input.verse_date, id);
     upload = await uploadVerseBackground(getImageFile(formData) as File);
+    watermarkUpload = await uploadVerseWatermark(getWatermarkImageFile(formData) as File);
+    input = applyWatermarkUpload(input, watermarkUpload?.url ?? null);
     if (input.is_published) {
       await unpublishOtherDailyVerses(supabase, id);
     }
