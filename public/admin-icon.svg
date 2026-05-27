@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Bible Admin">
+  <rect width="512" height="512" rx="112" fill="#0f172a"/>
+  <path d="M146 116h176c37 0 67 30 67 67v213H178c-37 0-67-30-67-67V151c0-19 16-35 35-35Z" fill="#2563eb"/>
+  <path d="M178 116h188c19 0 35 16 35 35v245H178c-37 0-67-30-67-67V183c0-37 30-67 67-67Z" fill="#ffffff"/>
+  <path d="M183 166h159v42H183v-42Zm0 72h159v31H183v-31Zm0 55h116v31H183v-31Z" fill="#0f172a"/>
+  <path d="M256 344c35-38 74-56 116-54-6 47-38 82-96 106-8 3-17 3-25 0-58-24-90-59-96-106 42-2 80 16 101 54Z" fill="#16a34a"/>
+  <path d="M256 210v147" stroke="#2563eb" stroke-width="23" stroke-linecap="round"/>
+  <path d="M214 252h84" stroke="#2563eb" stroke-width="23" stroke-linecap="round"/>
+</svg>

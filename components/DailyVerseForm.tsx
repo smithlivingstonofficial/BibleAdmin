@@ -5,7 +5,6 @@ export type DailyVerseFormValues = {
   verse_date?: string;
   reference?: string;
   verse_text?: string;
-  language?: string;
   is_published?: boolean;
   background_image_url?: string | null;
 };
@@ -19,27 +18,16 @@ type Props = {
 export default function DailyVerseForm({ action, submitLabel, values }: Props) {
   return (
     <form action={action} className="space-y-5 rounded border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block">
-          <span className="text-sm font-medium text-slate-700">Date</span>
-          <input
-            required
-            type="date"
-            name="verse_date"
-            defaultValue={values?.verse_date ?? ''}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm font-medium text-slate-700">Language</span>
-          <input
-            required
-            name="language"
-            defaultValue={values?.language ?? 'ta'}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
-          />
-        </label>
-      </div>
+      <label className="block">
+        <span className="text-sm font-medium text-slate-700">Date</span>
+        <input
+          required
+          type="date"
+          name="verse_date"
+          defaultValue={values?.verse_date ?? ''}
+          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 focus:border-slate-900 focus:outline-none"
+        />
+      </label>
 
       <label className="block">
         <span className="text-sm font-medium text-slate-700">Reference</span>

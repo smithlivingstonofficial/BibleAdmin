@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { type CookieOptions, createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 export function isSupabaseConfigured() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -34,6 +35,30 @@ export async function createClient() {
             // Server components cannot write cookies; server actions can.
           }
         },
+      },
+    }
+  );
+}
+
+export function isSupabaseServiceConfigured() {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+      && process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
+
+export function createServiceClient() {
+  if (!isSupabaseServiceConfigured()) {
+    throw new Error('Supabase service role environment variable is not configured.');
+  }
+
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
       },
     }
   );

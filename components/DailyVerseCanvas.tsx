@@ -26,7 +26,12 @@ function anchorTransform(anchor: CanvasAnchor, rotation: number) {
   const rotate = rotation ? ` rotate(${rotation}deg)` : '';
   if (anchor === 'center') return `translate(-50%, -50%)${rotate}`;
   if (anchor === 'top-center') return `translateX(-50%)${rotate}`;
+  if (anchor === 'top-right') return `translateX(-100%)${rotate}`;
+  if (anchor === 'center-left') return `translateY(-50%)${rotate}`;
+  if (anchor === 'center-right') return `translate(-100%, -50%)${rotate}`;
+  if (anchor === 'bottom-left') return `translateY(-100%)${rotate}`;
   if (anchor === 'bottom-center') return `translate(-50%, -100%)${rotate}`;
+  if (anchor === 'bottom-right') return `translate(-100%, -100%)${rotate}`;
   return rotate.trim() || undefined;
 }
 
@@ -114,9 +119,11 @@ export function DailyVerseCanvas({
 
       {!hideDate ? (
         <div
-          className="absolute flex items-center bg-slate-900/65 text-white shadow-sm backdrop-blur-[1px]"
+          className="absolute flex items-center whitespace-nowrap bg-slate-900/65 text-white shadow-sm backdrop-blur-[1px]"
           style={{
             ...layerStyle(canvas.layers.date),
+            width: 'max-content',
+            maxWidth: `calc(var(--canvas-size) * 0.7)`,
             gap: `calc(var(--canvas-size) * 0.014)`,
             borderRadius: `calc(var(--canvas-size) * 0.046)`,
             padding: `calc(var(--canvas-size) * 0.018) calc(var(--canvas-size) * 0.028)`,

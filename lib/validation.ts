@@ -7,7 +7,6 @@ export type DailyVerseInput = {
   verse_date: string;
   reference: string;
   verse_text: string;
-  language: string;
   is_published: boolean;
   editor_settings: Record<string, unknown>;
 };
@@ -168,7 +167,6 @@ export function parseDailyVerseForm(formData: FormData): DailyVerseInput {
   const verseDate = String(formData.get('verse_date') || '').trim();
   const reference = String(formData.get('reference') || '').trim();
   const verseText = String(formData.get('verse_text') || '').trim();
-  const language = String(formData.get('language') || 'ta').trim() || 'ta';
   const editorSettings = parseEditorSettings(formData, verseText);
   const isImageOnly = editorSettings.cardMode === 'imageOnly';
 
@@ -188,7 +186,6 @@ export function parseDailyVerseForm(formData: FormData): DailyVerseInput {
     verse_date: verseDate,
     reference,
     verse_text: verseText,
-    language,
     is_published: formData.get('is_published') === 'on',
     editor_settings: editorSettings,
   };

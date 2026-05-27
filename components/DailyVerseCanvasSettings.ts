@@ -1,4 +1,13 @@
-export type CanvasAnchor = 'top-left' | 'center' | 'top-center' | 'bottom-center';
+export type CanvasAnchor =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'center-left'
+  | 'center'
+  | 'center-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right';
 export type CanvasAlign = 'left' | 'center' | 'right';
 export type WatermarkMode = 'none' | 'text' | 'image' | 'textImage';
 
@@ -192,7 +201,7 @@ function normalizeTextLayer(value: unknown, fallback: CanvasTextLayer): CanvasTe
     align: choice(source.align, ['left', 'center', 'right'] as const, fallback.align),
     color: color(source.color, fallback.color),
     opacity: clamp(source.opacity, 0, 1, fallback.opacity),
-    anchor: choice(source.anchor, ['top-left', 'center', 'top-center', 'bottom-center'] as const, fallback.anchor),
+    anchor: choice(source.anchor, ['top-left', 'top-center', 'top-right', 'center-left', 'center', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'] as const, fallback.anchor),
     rotation: clamp(source.rotation, -180, 180, fallback.rotation),
     shadowEnabled: source.shadowEnabled === undefined ? fallback.shadowEnabled : source.shadowEnabled === true,
     shadowOpacity: clamp(source.shadowOpacity, 0, 1, fallback.shadowOpacity ?? 0.3),

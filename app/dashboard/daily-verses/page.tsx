@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import {
   deleteDailyVerse,
+  duplicateDailyVerse,
   setDailyVersePublished,
 } from '@/app/actions/daily-verses';
+import DailyVerseDashboardActions from '@/components/DailyVerseDashboardActions';
 import PublishDailyVerseButton from '@/components/PublishDailyVerseButton';
 import {
   VersePreviewCard,
@@ -16,7 +18,6 @@ type DailyVerse = {
   verse_date: string;
   reference: string;
   verse_text: string;
-  language: string;
   is_published: boolean;
   background_image_url: string | null;
   editor_settings: Record<string, unknown> | null;
@@ -63,7 +64,7 @@ export default async function DailyVersesPage() {
   const supabase = await createClient();
   const { data: verses, error } = await supabase
     .from('daily_verses')
-    .select('id, verse_date, reference, verse_text, language, is_published, background_image_url, editor_settings')
+    .select('id, verse_date, reference, verse_text, is_published, background_image_url, editor_settings')
     .order('verse_date', { ascending: false });
 
   if (error) {
@@ -137,7 +138,7 @@ export default async function DailyVersesPage() {
                         {displayReference}
                       </p>
                     </div>
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{formatDate(verse.verse_date)} &middot; {verse.language}</p>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{formatDate(verse.verse_date)}</p>
                   </div>
 
                   <p className="mt-3 line-clamp-3 overflow-hidden text-base leading-7 text-slate-700 sm:text-sm sm:leading-6">{displayText}</p>
@@ -152,20 +153,19 @@ export default async function DailyVersesPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 bg-slate-50/80 p-3 sm:p-4">
-                  <Link href={`/dashboard/daily-verses/${verse.id}/edit`} className="flex min-h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-2 py-2 text-center text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-100 min-[380px]:text-sm">
-                    Edit
-                  </Link>
+                <div className="grid grid-cols-2 gap-2 border-t border-slate-100 bg-slate-50/80 p-3 sm:grid-cols-3 sm:p-4">
+                  <DailyVerseDashboardActions
+                    editHref={`/dashboard/daily-verses/${verse.id}/edit`}
+                    downloadHref={`/api/daily-verses/${verse.id}/download`}
+                    duplicateAction={duplicateDailyVerse.bind(null, verse.id)}
+                    deleteAction={deleteDailyVerse.bind(null, verse.id)}
+                    reference={displayReference}
+                  />
                   <PublishDailyVerseButton
                     action={setDailyVersePublished.bind(null, verse.id, !verse.is_published)}
                     isPublished={verse.is_published}
                     publishedReference={conflictingPublishedReference}
                   />
-                  <form action={deleteDailyVerse.bind(null, verse.id)}>
-                    <button className="min-h-11 w-full rounded-lg border border-red-200 bg-white px-2 py-2 text-xs font-bold text-red-700 shadow-sm hover:bg-red-50 min-[380px]:text-sm">
-                      Delete
-                    </button>
-                  </form>
                 </div>
               </article>
             );

@@ -14,7 +14,7 @@ export default async function EditDailyVersePage({ params }: Props) {
   const supabase = await createClient();
   const { data: verse, error } = await supabase
     .from('daily_verses')
-    .select('id, verse_date, reference, verse_text, language, is_published, background_image_url, editor_settings')
+    .select('id, verse_date, reference, verse_text, is_published, background_image_url, editor_settings')
     .eq('id', id)
     .maybeSingle();
   const { data: publishedVerse } = await supabase
